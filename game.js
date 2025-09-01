@@ -12,7 +12,7 @@ const map = Array.from({ length: mapHeight }, () =>
     Array.from({ length: mapWidth }, () => Math.random() < 0.2 ? 1 : 0)
 );
 
-const numEnemies = 10;
+let numEnemies = 10;
 const enemies = [];
 
 let currentStage = 1;
@@ -32,11 +32,11 @@ const player = {
 };
 
 const items = [];
-const inventory = {
-  potion: 0,
-  weapon: null,
-  shield: null
-};
+const inventorySlots = 6;
+const inventory = Array(inventorySlots).fill(null); // [null, null, ...]
+
+
+
 
 
 let magicEffects = [];
@@ -60,7 +60,6 @@ function nextStage() {
     enemies.length = 0;
     items.length = 0;
     spawnEnemies();
-    spawnItems();
 
     // Aumenta dificuldade
     player.hp = player.maxHp;
@@ -70,30 +69,6 @@ function nextStage() {
     render();
 }
 
-function spawnItems(numItems = 10) {
-    for (let i = 0; i < numItems; i++) {
-        let x, y;
-        let tries = 0;
-        const maxTries = 100;
-
-        do {
-            x = Math.floor(Math.random() * mapWidth);
-            y = Math.floor(Math.random() * mapHeight);
-            tries++;
-        } while (
-            map[y][x] !== 0 ||
-            (x === player.x && y === player.y) ||
-            enemies.some(e => e.x === x && e.y === y) ||
-            items.some(it => it.x === x && it.y === y) ||
-            tries > maxTries
-        );
-
-        if (tries <= maxTries) {
-            const type = Math.random() < 0.5 ? 'hp' : 'mp';
-            items.push({ x, y, type });
-        }
-    }
-}
 
 function drawItems() {
     items.forEach(item => {
@@ -113,51 +88,12 @@ function drawItems() {
     });
 }
 
+function updateBars() {
+  const hpRatio = player.hp / player.maxHp;
+  const mpRatio = player.mp / player.maxMp;
 
-
-function drawHealthBar() {
-    const barWidth = 200;
-    const barHeight = 20;
-    const x = 10;
-    const y = 10;
-
-    const hpRatio = player.hp / player.maxHp;
-    let barColor = 'green';
-
-    if (hpRatio < 0.6) barColor = 'yellow';
-    if (hpRatio < 0.3) barColor = 'red';
-
-    // Fundo da barra
-    ctx.fillStyle = '#555';
-    ctx.fillRect(x, y, barWidth, barHeight);
-
-    // Barra de vida atual
-    ctx.fillStyle = barColor;
-    ctx.fillRect(x, y, barWidth * hpRatio, barHeight);
-
-    // Texto
-    ctx.fillStyle = 'white';
-    ctx.font = '16px Arial';
-    ctx.fillText(`Vida: ${player.hp}/${player.maxHp}`, x + 5, y + 16);
-}
-
-function drawManaBar() {
-    const barWidth = 200;
-    const barHeight = 20;
-    const x = 10;
-    const y = 40;
-
-    const mpRatio = player.mp / player.maxMp;
-
-    ctx.fillStyle = '#555';
-    ctx.fillRect(x, y, barWidth, barHeight);
-
-    ctx.fillStyle = '#00aaff'; // azul para mana
-    ctx.fillRect(x, y, barWidth * mpRatio, barHeight);
-
-    ctx.fillStyle = 'white';
-    ctx.font = '16px Arial';
-    ctx.fillText(`Mana: ${player.mp}/${player.maxMp}`, x + 5, y + 16 + 30);
+  document.querySelector('.fill.hp').style.width = `${hpRatio * 100}%`;
+  document.querySelector('.fill.mp').style.width = `${mpRatio * 100}%`;
 }
 
 function drawPlayer() {
@@ -222,6 +158,7 @@ function castMagic() {
                 enemy.hit = true;
                 setTimeout(() => {
                     enemies.splice(i, 1);
+                    player.xp += 5;
                     dropItem(enemy.x, enemy.y); // chance de drop
                     render();
                     if (enemies.length === 0) {
@@ -240,7 +177,7 @@ function castMagic() {
     }, 300);
 
     console.log("✨ Magia lançada! Mana restante:", player.mp);
-    player.xp += 5;
+    
     checkLevelUp();
     render();
 }
@@ -297,11 +234,14 @@ function render() {
             ctx.fillStyle = enemy.hit ? 'white' : enemy.color;
             ctx.fillRect(screenX, screenY, tileSize, tileSize);
         }
-        drawHealthBar();
-        drawManaBar();
+        updateBars();
         drawItems();
+        drawInventory();
+
         ctx.fillText(`🌍 Fase: ${currentStage}`, 10, 130);
     });
+
+    
 
 
 
@@ -340,6 +280,7 @@ function movePlayer(dx, dy) {
             player.mp = Math.min(player.maxMp, player.mp + 2);
             console.log("🔮 Mana recuperada!");
         }
+        addToInventory(item.type);
         items.splice(itemIndex, 1);
     }
 
@@ -369,6 +310,7 @@ function attackNearbyEnemies() {
                 enemy.hit = true; // ativa flash
                 setTimeout(() => {
                     enemies.splice(i, 1); // remove inimigo após flash
+                    player.xp += 5;
                     dropItem(enemy.x, enemy.y); // chance de drop
                     render();
                     if (enemies.length === 0) {
@@ -379,7 +321,7 @@ function attackNearbyEnemies() {
             }
         }
     });
-    player.xp += 5;
+    
     checkLevelUp();
 
     render();
@@ -399,6 +341,41 @@ function checkLevelUp() {
     }
 }
 
+function drawInventory() {
+  const slotSize = 32;
+  const startX = canvas.width - (inventorySlots * slotSize) - 10;
+  const startY = canvas.height - slotSize - 10;
+
+  for (let i = 0; i < inventorySlots; i++) {
+    const x = startX + i * slotSize;
+    const y = startY;
+
+    // Fundo do slot
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x, y, slotSize, slotSize);
+
+    // Item no slot
+    const item = inventory[i];
+    if (item) {
+      ctx.fillStyle =
+        item === 'potion' ? 'green' :
+        item === 'weapon' ? 'orange' :
+        item === 'shield' ? 'blue' : 'gray';
+
+      ctx.beginPath();
+      ctx.arc(x + slotSize / 2, y + slotSize / 2, slotSize / 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Borda
+    ctx.strokeStyle = 'white';
+    ctx.strokeRect(x, y, slotSize, slotSize);
+  }
+
+  ctx.fillStyle = 'white';
+  ctx.font = '14px Arial';
+  ctx.fillText("🎒 Inventário", startX, startY - 5);
+}
 
 function spawnEnemies() {
   for (let i = 0; i < numEnemies; i++) {
@@ -510,6 +487,17 @@ function tryMoveEnemy(enemy, dx, dy) {
     }
 }
 
+function addToInventory(itemType) {
+  const emptyIndex = inventory.findIndex(slot => slot === null);
+  if (emptyIndex !== -1) {
+    inventory[emptyIndex] = itemType;
+    console.log(`📦 Item coletado: ${itemType}`);
+  } else {
+    console.log("❌ Inventário cheio!");
+  }
+}
+
+
 setInterval(() => {
     updateEnemies();
     checkEnemyCollision();
@@ -539,6 +527,21 @@ document.addEventListener('keydown', (e) => {
 
     render();
 });
+
+document.addEventListener('keydown', (e) => {
+    
+  if (e.key === 'h') {
+     console.log("Usando poção de vida...");
+    const potionIndex = inventory.findIndex(item => item === 'potion');
+    if (potionIndex !== -1 && player.hp < player.maxHp) {
+      inventory[potionIndex] = null;
+      player.hp = Math.min(player.maxHp, player.hp + 3);
+      console.log("💚 Poção usada! HP:", player.hp);
+      render();
+    }
+  }
+});
+
+
 spawnEnemies();
-spawnItems();
 render();

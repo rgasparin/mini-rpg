@@ -6,8 +6,47 @@ body {
   height: 100vh;
 }
 
+#container {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px;
+}
+
+#hud {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: white;
+  font-family: sans-serif;
+}
+
 canvas {
-      border: 2px solid #000;
-      display: block;
-      margin: 20px auto;
-    }
+  border: 2px solid #444;
+}
+
+.bar-container {
+  margin-bottom: 10px;
+}
+
+.bar {
+  width: 200px;
+  height: 20px;
+  background-color: #555;
+  border: 1px solid #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.hp {
+  background-color: green;
+}
+
+.mp {
+  background-color: #00aaff;
+}

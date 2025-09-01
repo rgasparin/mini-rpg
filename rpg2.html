@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>RPG Estilo Tibia</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; margin: auto; background: #222; }
+    #hud, #inventory {
+      position: absolute; color: white; font-family: Arial, sans-serif;
+      background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;
+    }
+    #hud { top: 10px; left: 10px; }
+    #inventory { top: 10px; right: 10px; }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="hud">
+  <div>HP: <span id="hp">100</span></div>
+  <div>XP: <span id="xp">0</span></div>
+</div>
+<div id="inventory">
+  Inventário: <span id="items">(vazio)</span>
+</div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const tileSize = 32;
+const mapWidth = 25;
+const mapHeight = 19;
+let map = [];
+
+for (let y = 0; y < mapHeight; y++) {
+  let row = [];
+  for (let x = 0; x < mapWidth; x++) {
+    row.push(Math.random() < 0.1 ? 1 : 0);
+  }
+  map.push(row);
+}
+
+let player = { x: 12, y: 9, color: 'yellow', hp: 100, xp: 0, inventory: [] };
+
+let npcs = [
+  { x: 5, y: 5, color: 'orange', dialog: 'Bem-vindo ao mundo!' },
+  { x: 10, y: 10, color: 'orange', dialog: 'Cuidado com os monstros!' }
+];
+
+let monsters = [
+  { x: 15, y: 15, color: 'red', hp: 20, xp: 10, drop: 'Espada' },
+  { x: 18, y: 14, color: 'red', hp: 20, xp: 10, drop: 'Poção' }
+];
+
+let itemsOnGround = []; // {x, y, name}
+
+let keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function update() {
+  let dx = 0, dy = 0;
+  if (keys['ArrowUp'] || keys['w']) dy = -1;
+  if (keys['ArrowDown'] || keys['s']) dy = 1;
+  if (keys['ArrowLeft'] || keys['a']) dx = -1;
+  if (keys['ArrowRight'] || keys['d']) dx = 1;
+
+  if (dx !== 0 || dy !== 0) {
+    const newX = player.x + dx;
+    const newY = player.y + dy;
+    if (newX >= 0 && newX < mapWidth && newY >= 0 && newY < mapHeight && map[newY][newX] === 0) {
+      player.x = newX;
+      player.y = newY;
+    }
+  }
+
+  npcs.forEach(npc => {
+    if (npc.x === player.x && npc.y === player.y) {
+      alert(npc.dialog);
+    }
+  });
+
+  monsters.forEach(monster => {
+    if (monster.x === player.x && monster.y === player.y && monster.hp > 0) {
+      monster.hp -= 10;
+      player.hp -= 5;
+      if (monster.hp <= 0) {
+        player.xp += monster.xp;
+        itemsOnGround.push({ x: monster.x, y: monster.y, name: monster.drop });
+        monster.x = -100; // remove do mapa
+      }
+    }
+  });
+
+  itemsOnGround = itemsOnGround.filter(item => {
+    if (item.x === player.x && item.y === player.y) {
+      player.inventory.push(item.name);
+      return false;
+    }
+    return true;
+  });
+
+  document.getElementById('hp').textContent = player.hp;
+  document.getElementById('xp').textContent = player.xp;
+  document.getElementById('items').textContent = player.inventory.length > 0 ? player.inventory.join(', ') : '(vazio)';
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = 0; x < mapWidth; x++) {
+      ctx.fillStyle = map[y][x] === 0 ? '#3a5' : '#27f';
+      ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+    }
+  }
+
+  npcs.forEach(npc => {
+    ctx.fillStyle = npc.color;
+    ctx.fillRect(npc.x * tileSize, npc.y * tileSize, tileSize, tileSize);
+  });
+
+  monsters.forEach(monster => {
+    if (monster.hp > 0) {
+      ctx.fillStyle = monster.color;
+      ctx.fillRect(monster.x * tileSize, monster.y * tileSize, tileSize, tileSize);
+    }
+  });
+
+  itemsOnGround.forEach(item => {
+    ctx.fillStyle = 'gold';
+    ctx.fillRect(item.x * tileSize + 8, item.y * tileSize + 8, tileSize/2, tileSize/2);
+  });
+
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x * tileSize, player.y * tileSize, tileSize, tileSize);
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

@@ -1,18 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <title>Mini RPG</title>
-  <style>
-    canvas {
-      border: 2px solid #333;
-      background-color: #eee;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <h2>Mini RPG</h2>
-  <canvas id="gameCanvas" width="640" height="480"></canvas>
+  <div id="container">
+    <div id="hud">
+      <div class="bar-container">
+        <label>❤️ Vida</label>
+        <div class="bar">
+          <div class="fill hp"></div>
+        </div>
+      </div>
+      <div class="bar-container">
+        <label>🔮 Mana</label>
+        <div class="bar">
+          <div class="fill mp"></div>
+        </div>
+      </div>
+    </div>
+    <canvas id="gameCanvas" width="640" height="480"></canvas>
+  </div>
   <script src="game.js"></script>
 </body>
+
 </html>
