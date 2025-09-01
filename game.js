@@ -32,6 +32,12 @@ const player = {
 };
 
 const items = [];
+const inventory = {
+  potion: 0,
+  weapon: null,
+  shield: null
+};
+
 
 let magicEffects = [];
 
@@ -216,6 +222,7 @@ function castMagic() {
                 enemy.hit = true;
                 setTimeout(() => {
                     enemies.splice(i, 1);
+                    dropItem(enemy.x, enemy.y); // chance de drop
                     render();
                     if (enemies.length === 0) {
                         nextStage();
@@ -362,6 +369,7 @@ function attackNearbyEnemies() {
                 enemy.hit = true; // ativa flash
                 setTimeout(() => {
                     enemies.splice(i, 1); // remove inimigo após flash
+                    dropItem(enemy.x, enemy.y); // chance de drop
                     render();
                     if (enemies.length === 0) {
                         nextStage();
@@ -393,28 +401,64 @@ function checkLevelUp() {
 
 
 function spawnEnemies() {
-    for (let i = 0; i < numEnemies; i++) {
-        let x, y;
-        let tries = 0;
-        const maxTries = 100;
+  for (let i = 0; i < numEnemies; i++) {
+    let x, y;
+    let tries = 0;
+    const maxTries = 100;
 
-        do {
-            x = Math.floor(Math.random() * mapWidth);
-            y = Math.floor(Math.random() * mapHeight);
-            tries++;
-        } while (
-            map[y][x] !== 0 ||
-            (x === player.x && y === player.y) ||
-            enemies.some(e => e.x === x && e.y === y) ||
-            tries > maxTries
-        );
+    do {
+      x = Math.floor(Math.random() * mapWidth);
+      y = Math.floor(Math.random() * mapHeight);
+      tries++;
+    } while (
+      map[y][x] !== 0 ||
+      (x === player.x && y === player.y) ||
+      enemies.some(e => e.x === x && e.y === y) ||
+      tries > maxTries
+    );
 
-        if (tries <= maxTries) {
-            enemies.push({ x, y, color: 'red', hit: false });
-        }
+    if (tries <= maxTries) {
+      const type = Math.random() < 0.5 ? 'goblin' : 'ghost';
+      enemies.push(createEnemy(type, x, y));
     }
+  }
 }
 
+function createEnemy(type, x, y) {
+  switch (type) {
+    case 'goblin':
+      return {
+        type: 'goblin',
+        x, y,
+        hp: 3,
+        attack: 1,
+        speed: 1,
+        color: 'darkgreen',
+        hit: false
+      };
+    case 'ghost':
+      return {
+        type: 'ghost',
+        x, y,
+        hp: 2,
+        attack: 2,
+        speed: 2,
+        color: 'purple',
+        hit: false,
+        special: 'teleport'
+      };
+    default:
+      return {
+        type: 'basic',
+        x, y,
+        hp: 1,
+        attack: 1,
+        speed: 1,
+        color: 'red',
+        hit: false
+      };
+  }
+}
 
 function updateEnemies() {
     enemies.forEach(enemy => {
@@ -436,6 +480,17 @@ function updateEnemies() {
         }
     });
 }
+
+function dropItem(x, y) {
+  const chance = Math.random();
+  if (chance < 0.4) { // 40% de chance de drop
+    const types = ['potion', 'weapon', 'shield'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    items.push({ x, y, type });
+    console.log(`🎁 Inimigo dropou um ${type}!`);
+  }
+}
+
 
 function tryMoveEnemy(enemy, dx, dy) {
     const newX = enemy.x + dx;
